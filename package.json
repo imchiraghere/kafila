@@ -14,7 +14,9 @@
   "scripts": {
     "dev:web": "npm --workspace=apps/web run dev",
     "dev:server": "npm --workspace=apps/server run dev",
-    "build": "npm --workspace=packages/shared run build && npm --workspace=packages/game-core run build && npm --workspace=apps/server run build && npm --workspace=apps/web run build",
+    "build": "npm --workspace=apps/web run build",
+    "build:all": "npm --workspace=packages/shared run build && npm --workspace=packages/game-core run build && npm --workspace=apps/server run build && npm --workspace=apps/web run build",
+    "build:server": "npm --workspace=apps/server run build",
     "typecheck": "npm --workspaces run typecheck"
   }
 }

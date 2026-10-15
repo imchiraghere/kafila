@@ -24,8 +24,9 @@ export default function Home() {
     (async () => {
       try {
         if (typeof window !== 'undefined') {
-          (window as any).__JM_WS_URL__ = process.env.NEXT_PUBLIC_WS_URL || '';
-          (window as any).__JM_SERVER_URL__ = process.env.NEXT_PUBLIC_SERVER_HTTP_URL || '';
+          const isProd = process.env.NODE_ENV === 'production' || (window.location && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+          (window as any).__JM_WS_URL__ = process.env.NEXT_PUBLIC_WS_URL || (isProd ? 'wss://kafila-server.vercel.app/ws' : '');
+          (window as any).__JM_SERVER_URL__ = process.env.NEXT_PUBLIC_SERVER_HTTP_URL || (isProd ? 'https://kafila-server.vercel.app' : '');
         }
         await loadScript('/shared/world.js');
         await loadScript('/shared/sim.js');

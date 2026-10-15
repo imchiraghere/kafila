@@ -386,6 +386,8 @@ class Online{
  constructor(name,team,room){this.name=name;this.team=team;this.room=room||'main';this.backoff=600;
   if(window.__JM_WS_URL__){
     this.url=window.__JM_WS_URL__;
+  }else if(location.hostname !== 'localhost' && location.hostname !== '127.0.0.1'){
+    this.url='wss://kafila-server.vercel.app/ws';
   }else{
     const wsPort = window.__JM_SERVER_PORT__ || '4000';
     const host = location.port === wsPort ? location.host : (location.hostname || 'localhost') + ':' + wsPort;
@@ -1164,7 +1166,9 @@ const online=location.protocol==='http:'||location.protocol==='https:';
 const ONLINE_DOWN=false;
 function refreshStatus(){if(ONLINE_DOWN){statusEl.innerHTML='🟠 Online play is temporarily down due to massive load. <b>Play offline</b> meanwhile, it is the full game with bots!';playBtn.disabled=true;return;}
  if(!online){statusEl.innerHTML='Opened as a file, so online play needs the server: run <kbd>npm start</kbd> and open <b>http://localhost:3001</b>. Practice offline works right here.';playBtn.disabled=true;return;}
- const serverBase = window.__JM_SERVER_URL__ ? window.__JM_SERVER_URL__.replace(/\/$/, '') : '';
+ const serverBase = window.__JM_SERVER_URL__
+  ? window.__JM_SERVER_URL__.replace(/\/$/, '')
+  : (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1' ? 'https://kafila-server.vercel.app' : '');
  const stUrl = serverBase ? `${serverBase}/status` : (location.port === '4000' || location.port === '3001' ? '/status' : `http://${location.hostname||'localhost'}:4000/status`);
  const applyStatus=(s)=>{
   statusEl.innerHTML=`🟢 Server online · <b>${s.players||0}</b> player${s.players===1?'':'s'} in ${s.rooms||0} room${s.rooms===1?'':'s'}`;

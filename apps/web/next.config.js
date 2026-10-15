@@ -1,4 +1,8 @@
-const serverHttpUrl = (process.env.NEXT_PUBLIC_SERVER_HTTP_URL || 'http://localhost:4000').replace(/\/$/, '');
+const defaultServerUrl = process.env.NODE_ENV === 'production'
+  ? 'https://kafila-server.vercel.app'
+  : 'http://localhost:4000';
+
+const serverHttpUrl = (process.env.NEXT_PUBLIC_SERVER_HTTP_URL || defaultServerUrl).replace(/\/$/, '');
 
 const nextConfig = {
   reactStrictMode: false,

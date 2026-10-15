@@ -1,7 +1,12 @@
 {
-  "name": "mantar-jantar-monorepo",
+  "name": "kafila",
   "version": "1.0.0",
   "private": true,
+  "author": "Chirag Soni (Boogiy Man) <chirag7049959351@gmail.com> (https://github.com/imchiraghere)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/imchiraghere/kafila.git"
+  },
   "workspaces": [
     "packages/*",
     "apps/*"

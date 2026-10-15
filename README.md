@@ -1,6 +1,12 @@
-# Mantar Jantar (Jantar Mantar Chalo) — Website Analysis & Game Recreation
+# Kafila (Jantar Mantar Chalo) — Multiplayer Satire Game ✊🚧👮
 
-A complete, independent recreation of **[Jantar Mantar Chalo](https://mantarjantar.com/)** as a top-down, satirical multiplayer and offline browser arcade game.
+[![Author](https://img.shields.io/badge/Author-Chirag%20Soni%20(Boogiy%20Man)-FF6F00?style=for-the-badge&logo=github)](https://github.com/imchiraghere)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-kafila-181717?style=for-the-badge&logo=github)](https://github.com/imchiraghere/kafila)
+[![Framework](https://img.shields.io/badge/Next.js-14-000000?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![Deploy](https://img.shields.io/badge/Deploy-Vercel-000000?style=for-the-badge&logo=vercel)](https://vercel.com)
+
+> **Designed & Developed by [Chirag Soni (Boogiy Man)](https://github.com/imchiraghere)**  
+> *A top-down, real-time multiplayer and offline satirical browser arcade game recreating the Delhi protest dynamics.*
 
 ---
 
@@ -144,3 +150,19 @@ See the complete guide in [docs/vercel-deployment.md](file:///Volumes/EXTRA_STOR
 
 1. **Browser Subagent Driver Issue**: Playwright driver v1.57.0 on macOS arm64 failed upstream download from Azure Edge. The game was validated via standard headless HTTP verification and integration test runners.
 2. **Additional Satirical Events**: Future enhancements could expand additional mini-events such as Water Cannons and Delhi Fog/Smog visual fog shaders.
+
+---
+
+## 7. Author & Credits
+
+- **Creator & Lead Developer**: **[Chirag Soni (Boogiy Man)](https://github.com/imchiraghere)**
+- **GitHub Profile**: [@imchiraghere](https://github.com/imchiraghere)
+- **Email**: `chirag7049959351@gmail.com`
+- **Repository**: [https://github.com/imchiraghere/kafila](https://github.com/imchiraghere/kafila)
+
+---
+
+## 8. License & Copyright
+
+**Copyright © 2026 Boogiy Man. All Rights Reserved.**  
+*Satire game. All characters, locations, events, shops, and brands depicted in the game are fictional.*

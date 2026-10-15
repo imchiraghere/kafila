@@ -1,0 +1,183 @@
+'use client';
+
+import React, { useEffect, useRef, useState } from 'react';
+import { Team, NEWS } from '@mantar-jantar/shared';
+import { GameClient } from '../game/client';
+import { isMuted, setMuted } from '../game/audio';
+
+interface GameViewProps {
+  name: string;
+  team: Team;
+  muddaIndex: number;
+  mode: 'online' | 'offline';
+  onOpenMenu: () => void;
+}
+
+export function GameView({
+  name,
+  team,
+  muddaIndex,
+  mode,
+  onOpenMenu
+}: GameViewProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const clientRef = useRef<GameClient | null>(null);
+
+  const [status, setStatus] = useState('');
+  const [score, setScore] = useState(0);
+  const [kafila, setKafila] = useState(0);
+  const [muted, setMutedState] = useState(false);
+  const [gameOverMsg, setGameOverMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4000/ws';
+
+    const client = new GameClient({
+      canvas: canvasRef.current,
+      name,
+      team,
+      mudda: muddaIndex,
+      mode,
+      wsUrl,
+      onStatusChange: (st) => setStatus(st),
+      onGameOver: (msg) => setGameOverMsg(msg),
+      onScoreUpdate: (sc, k) => {
+        setScore(sc);
+        setKafila(k);
+      }
+    });
+
+    clientRef.current = client;
+    client.start();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onOpenMenu();
+      if (e.key.toLowerCase() === 'm') {
+        const nextMute = !isMuted();
+        setMuted(nextMute);
+        setMutedState(nextMute);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      client.stop();
+      clientRef.current = null;
+    };
+  }, [name, team, muddaIndex, mode, onOpenMenu]);
+
+  const toggleMute = () => {
+    const nextMute = !muted;
+    setMuted(nextMute);
+    setMutedState(nextMute);
+  };
+
+  const tickerText = NEWS.join('   ◆   ');
+
+  return (
+    <>
+      <canvas id="c" ref={canvasRef} />
+
+      {/* In-Game HUD */}
+      <div className="hud">
+        <div className="hud-pill">
+          <span>{team === 'P' ? '✊ Protester' : '👮 Dilli Police'}</span>
+          <span>|</span>
+          <span>Score: {score}</span>
+          {team === 'P' && (
+            <>
+              <span>|</span>
+              <span>Kafila: {kafila}</span>
+            </>
+          )}
+        </div>
+
+        <button type="button" className="hud-btn" onClick={toggleMute}>
+          {muted ? '🔇 Unmute' : '🔊 Mute'}
+        </button>
+
+        <button type="button" className="hud-btn" onClick={onOpenMenu}>
+          ⚙ Menu (Esc)
+        </button>
+      </div>
+
+      {/* Game Over Banner */}
+      {gameOverMsg && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(29, 26, 22, 0.95)',
+            border: '3px solid #ff9933',
+            color: '#fff',
+            padding: '24px 36px',
+            borderRadius: '16px',
+            textAlign: 'center',
+            zIndex: 8,
+            boxShadow: '0 10px 40px rgba(0,0,0,0.6)'
+          }}
+        >
+          <h2 style={{ fontSize: '28px', color: '#ff9933', marginBottom: '8px' }}>
+            ROUND OVER!
+          </h2>
+          <p style={{ fontSize: '18px', marginBottom: '16px' }}>{gameOverMsg}</p>
+          <button
+            type="button"
+            className="btn"
+            id="play"
+            style={{ fontSize: '16px', padding: '10px 24px' }}
+            onClick={onOpenMenu}
+          >
+            Play Again
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Control Buttons */}
+      <div id="mob">
+        <button
+          type="button"
+          className="mb"
+          id="bAct"
+          onClick={() => clientRef.current?.triggerMobileAction('act')}
+        >
+          {team === 'P' ? 'NAARA' : 'LATHI'}
+        </button>
+        <button
+          type="button"
+          className="mb b3"
+          id="bE"
+          onClick={() => clientRef.current?.triggerMobileAction('lift')}
+        >
+          {team === 'P' ? 'PUSH' : 'LIFT'}
+        </button>
+        <button
+          type="button"
+          className="mb b2"
+          id="bGas"
+          onClick={() => clientRef.current?.triggerMobileAction('gas')}
+        >
+          {team === 'P' ? 'RALLY' : 'GAS'}
+        </button>
+        <button
+          type="button"
+          className="mb b4"
+          id="bRun"
+          onClick={() => clientRef.current?.triggerMobileAction('run')}
+        >
+          DASH
+        </button>
+      </div>
+
+      {/* Bottom Delhi News Ticker */}
+      <div className="ticker-bar">
+        <div className="ticker-content">{tickerText}</div>
+      </div>
+    </>
+  );
+}

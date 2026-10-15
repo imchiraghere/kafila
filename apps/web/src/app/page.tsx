@@ -24,9 +24,26 @@ export default function Home() {
     (async () => {
       try {
         if (typeof window !== 'undefined') {
-          const isProd = process.env.NODE_ENV === 'production' || (window.location && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
-          (window as any).__JM_WS_URL__ = process.env.NEXT_PUBLIC_WS_URL || (isProd ? 'wss://kafila-server.vercel.app/ws' : '');
-          (window as any).__JM_SERVER_URL__ = process.env.NEXT_PUBLIC_SERVER_HTTP_URL || (isProd ? 'https://kafila-server.vercel.app' : '');
+          const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+          const isProd = !isLocal;
+
+          let wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+          let httpUrl = process.env.NEXT_PUBLIC_SERVER_HTTP_URL;
+
+          if (isProd) {
+            if (!wsUrl || wsUrl.includes('localhost') || wsUrl.includes('127.0.0.1')) {
+              wsUrl = 'wss://kafila-server.vercel.app/ws';
+            }
+            if (!httpUrl || httpUrl.includes('localhost') || httpUrl.includes('127.0.0.1')) {
+              httpUrl = 'https://kafila-server.vercel.app';
+            }
+          } else {
+            wsUrl = wsUrl || 'ws://localhost:4000/ws';
+            httpUrl = httpUrl || 'http://localhost:4000';
+          }
+
+          (window as any).__JM_WS_URL__ = wsUrl;
+          (window as any).__JM_SERVER_URL__ = httpUrl;
         }
         await loadScript('/shared/world.js');
         await loadScript('/shared/sim.js');

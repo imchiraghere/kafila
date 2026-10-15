@@ -30,16 +30,16 @@ Ensure your monorepo contains:
    - **Build Command**: `npm run build` (automatic via `vercel.json`)
    - **Output Directory**: `apps/web/.next` (automatic via `vercel.json`)
 
-### Step 3: Configure Environment Variables (Optional for Online Server)
-In the Vercel project dashboard under **Settings → Environment Variables**, add:
+### Step 3: Production Backend (Connected Automatically)
+The frontend is pre-configured with the live production backend:
 
-| Variable | Description | Example Value |
+| Variable | Description | Production Value |
 | :--- | :--- | :--- |
-| `NEXT_PUBLIC_WS_URL` | WebSocket URL for live multiplayer | `wss://jantar-mantar-server.up.railway.app/ws` |
-| `NEXT_PUBLIC_SERVER_HTTP_URL` | HTTP API URL for server /status | `https://jantar-mantar-server.up.railway.app` |
+| `NEXT_PUBLIC_WS_URL` | WebSocket URL for live multiplayer | `wss://kafila-server.vercel.app/ws` |
+| `NEXT_PUBLIC_SERVER_HTTP_URL` | HTTP API URL for server `/status` | `https://kafila-server.vercel.app` |
 
 > [!NOTE]
-> If you do not configure these environment variables, the game automatically runs in **Offline Practice Mode** (full game with AI bots) and will not throw errors.
+> These are included in `.env.production` and built into the client runtime fallbacks, so no manual configuration in Vercel is required! Both live online multiplayer and offline practice mode work seamlessly.
 
 ### Step 4: Click "Deploy"
 Vercel will compile the shared packages and the Next.js bundle. Once complete, you will receive your live URL (e.g. `https://your-game.vercel.app`).

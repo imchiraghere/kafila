@@ -123,11 +123,13 @@ The web app runs on `http://localhost:3001` (configured on 3001 to avoid collidi
 ```bash
 npx tsx apps/server/src/test-client.ts
 ```
-### Deploying to Vercel
+### Deploying to Vercel & Production Backend
 See the complete guide in [docs/vercel-deployment.md](file:///Volumes/EXTRA_STORE/crm/docs/vercel-deployment.md).
-- Ready out of the box with `vercel.json`.
+- **Live Production Server**: `https://kafila-server.vercel.app`
+- **Live Production WebSocket**: `wss://kafila-server.vercel.app/ws`
 - Automatic build and static generation with Next.js 14.
-- Runs 100% offline with zero configuration; connect `NEXT_PUBLIC_WS_URL` to your backend for live multiplayer.
+- Pre-configured with `.env.production` — connect to production automatically out of the box!
+- Runs offline practice mode seamlessly with AI bots if played without internet.
 
 ---
 

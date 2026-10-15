@@ -32,7 +32,11 @@ export function GameView({
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4000/ws';
+    const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    const defaultWs = !isLocal ? 'wss://kafila-server.vercel.app/ws' : 'ws://localhost:4000/ws';
+    const wsUrl = (process.env.NEXT_PUBLIC_WS_URL && (!process.env.NEXT_PUBLIC_WS_URL.includes('localhost') || isLocal))
+      ? process.env.NEXT_PUBLIC_WS_URL
+      : defaultWs;
 
     const client = new GameClient({
       canvas: canvasRef.current,

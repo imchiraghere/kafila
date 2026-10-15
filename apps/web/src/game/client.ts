@@ -56,8 +56,9 @@ export class GameClient {
     this.name = opts.name;
     this.team = opts.team;
     this.mudda = opts.mudda;
-    this.mode = opts.mode;
-    this.wsUrl = opts.wsUrl || 'ws://localhost:4000/ws';
+    const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    const defaultWs = !isLocal ? 'wss://kafila-server.vercel.app/ws' : 'ws://localhost:4000/ws';
+    this.wsUrl = opts.wsUrl || defaultWs;
     this.onStatusChange = opts.onStatusChange;
     this.onGameOver = opts.onGameOver;
     this.onScoreUpdate = opts.onScoreUpdate;

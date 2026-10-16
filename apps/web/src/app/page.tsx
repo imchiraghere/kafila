@@ -6,14 +6,15 @@ export default function Home() {
   useEffect(() => {
     const loadScript = (src: string): Promise<void> => {
       return new Promise((resolve, reject) => {
-        // Check if already loaded
-        const existing = document.querySelector(`script[src="${src}"]`);
-        if (existing) {
+        const baseSrc = src.split('?')[0];
+        const existing = document.querySelector(`script[data-script="${baseSrc}"]`);
+        if (existing || (baseSrc.includes('client.js') && (window as any).__jm)) {
           resolve();
           return;
         }
         const s = document.createElement('script');
         s.src = src;
+        s.setAttribute('data-script', baseSrc);
         s.async = false;
         s.onload = () => resolve();
         s.onerror = (e) => reject(e);
@@ -45,9 +46,10 @@ export default function Home() {
           (window as any).__JM_WS_URL__ = wsUrl;
           (window as any).__JM_SERVER_URL__ = httpUrl;
         }
-        await loadScript('/shared/world.js');
-        await loadScript('/shared/sim.js');
-        await loadScript('/client.js');
+        const v = Date.now();
+        await loadScript('/shared/world.js?v=' + v);
+        await loadScript('/shared/sim.js?v=' + v);
+        await loadScript('/client.js?v=' + v);
       } catch (err) {
         console.error('Failed to load game scripts:', err);
       }

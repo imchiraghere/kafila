@@ -1,4 +1,8 @@
 'use strict';
+if(typeof window!=='undefined'&&window.__jm_loaded){
+  console.warn('Game client already initialized, skipping duplicate execution');
+}else{
+if(typeof window!=='undefined')window.__jm_loaded=true;
 (function(){
 const Wd=window.World;
 const {TAU,clamp,d2,dist,norm,mulberry32,shade,ZONE,JM,WORLD,CP,ROADS,RINGS,PARKS,DEST,METRO,BANGLA,BUILD,TREES,GATE_DEFS,ASSEMBLY,PSTATIONS,riverL,moveBody,SPEED,nearBuildings}=Wd;
@@ -1363,35 +1367,11 @@ function drawPersonV(o,L,dirCode,frame,isMe){
  else if(human||bot){ctx.strokeStyle=o.type===0?'rgba(255,109,0,.8)':'rgba(21,101,192,.8)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(o.x,o.y,14,5.5,0,0,TAU);ctx.stroke();}
  else if(o.fl&32){ctx.strokeStyle='rgba(255,152,0,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(o.x,o.y,14,5.5,0,0,TAU);ctx.stroke();}
  const SC_P=isMe?1.3:(o.fl&256)?1.2:(o.fl&512)?1.1:1;
- // --- Realistic Directional Sun Shadow & Ambient Occlusion ---
- const shLen = (isMe ? 18 : 14) * SC_P;
- ctx.save();
- ctx.translate(o.x, o.y);
- ctx.transform(1, 0, 0.58, 0.36, 0, 0); // Golden-hour sun projection shear
+ const [d,flip]=DIRMAP[dirCode]||DIRMAP[0];let c=charSprite(L,d,frame);
  ctx.fillStyle = 'rgba(25, 18, 12, 0.28)';
  ctx.beginPath();
- ctx.ellipse(shLen * 0.42, -shLen * 0.48, 6.2 * SC_P, shLen * 0.65, 0, 0, TAU);
+ ctx.ellipse(o.x, o.y, 8.5 * SC_P, 3.5 * SC_P, 0, 0, TAU);
  ctx.fill();
- ctx.restore();
- // Ground contact ambient occlusion shadow directly under feet
- ctx.fillStyle = 'rgba(18, 12, 8, 0.42)';
- ctx.beginPath();
- ctx.ellipse(o.x, o.y, 8.5 * SC_P, 3.2 * SC_P, 0, 0, TAU);
- ctx.fill();
-
- // Running dust puffs
- if((o.fl & 1) && Math.random() < 0.12){
-   particles.push({
-     x: o.x + rand(-3, 3),
-     y: o.y + rand(-1, 2),
-     vx: rand(-5, 5) * 0.5,
-     vy: rand(-8, -3),
-     life: 0.38,
-     max: 0.38,
-     c: 'rgba(215, 195, 160, 0.38)',
-     s: rand(2.5, 4.5)
-   });
- }
 
  let bob=(o.fl&1)?-Math.abs(Math.sin(o.walk/9*Math.PI/2))*1.2:0;
  const chr=CHEERS.get(o.id);if(chr){const el=performance.now()-chr.t0;if(el>420)CHEERS.delete(o.id);else if(el>0)bob-=Math.sin(Math.PI*el/420)*8;}
@@ -1461,19 +1441,8 @@ function drawScene(dyn){
   switch(k){
    case 1:{
      const c=buildingSprite(o);
-     // Directional Golden Hour sun shadow cast to the north-east
-     const shL = o.H * 0.52;
-     ctx.fillStyle='rgba(25,18,12,0.28)';
-     ctx.beginPath();
-     ctx.moveTo(o.x, o.y + o.h);
-     ctx.lineTo(o.x + o.w, o.y + o.h);
-     ctx.lineTo(o.x + o.w + shL * 0.72, o.y + o.h - shL * 0.46);
-     ctx.lineTo(o.x + shL * 0.72, o.y + o.h - shL * 0.46);
-     ctx.closePath();
-     ctx.fill();
-     // Base contact shadow
-     ctx.fillStyle='rgba(15,10,5,0.24)';
-     ctx.fillRect(o.x, o.y + o.h - 2, o.w, 4);
+     ctx.fillStyle='rgba(35,22,12,0.22)';
+     ctx.fillRect(o.x+2,o.y+o.h-3,o.w-2,6);
      ctx.drawImage(c,o.x-2,o.y-o.H-2,c.ww,c.hh);
      break;
    }
@@ -1521,7 +1490,6 @@ function drawScene(dyn){
  }
  if(meObj){// always on top, with a glow
   const me2=S.me;const L=lookFor(me2.team==='P'?0:1,me2.look,me2.mud);const c2=Math.cos(P.face),s2=Math.sin(P.face);const dc=Math.abs(c2)>Math.abs(s2)*1.05?(c2<0?3:2):(s2>0?0:1);
-  drawPersonV(meObj,L,dc,personFrame(meObj),true);
   const cy=meObj.y-124+Math.sin(performance.now()/170)*3.5;ctx.fillStyle=me2.team==='P'?'#ff6d00':'#1565c0';ctx.strokeStyle='#fff';ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(meObj.x-10,cy-9);ctx.lineTo(meObj.x+10,cy-9);ctx.lineTo(meObj.x,cy+3);ctx.closePath();ctx.fill();ctx.stroke();}
  // show yourself through buildings
  if(meObj){for(const b of nearBuildings(meObj.x,meObj.y)){if(meObj.x>b.x-6&&meObj.x<b.x+b.w+6&&meObj.y<b.y-2&&meObj.y>b.y-b.H-10){ctx.globalAlpha=.5;const me2=S.me;drawPersonV(meObj,lookFor(me2.team==='P'?0:1,me2.look,me2.mud),0,0,true);ctx.globalAlpha=1;break;}}}
@@ -1942,7 +1910,7 @@ function render(dt){
  ctx.setTransform(DPR*z,0,0,DPR*z,DPR*(W/2-cam.x*z+sx),DPR*(H/2-cam.y*z+sy));
  const i0=Math.floor(V.x0/TS),i1=Math.floor(V.x1/TS),j0=Math.floor(V.y0/TS),j1=Math.floor((V.y1-120)/TS);{let tb=2;for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const key=i*1000+j;let t=tiles.get(key);if(t){tiles.delete(key);tiles.set(key,t);}else if(tb>0){tb--;t=getTile(i,j);}if(t)ctx.drawImage(t,i*TS,j*TS,TS+.6,TS+.6);else{ctx.fillStyle='#d6c79f';ctx.fillRect(i*TS,j*TS,TS+.6,TS+.6);}}
   if(tb>0)ring:for(let i=i0-1;i<=i1+1;i++)for(let j=j0-1;j<=j1+1;j++){if(!tiles.has(i*1000+j)){getTile(i,j);if(--tb<=0)break ring;}}}
- drawDynamicGround();drawScene(dyn);drawGas(dyn);drawFx();drawWorldUI();drawAtmosphere(dt);drawHUD(dt);
+ drawDynamicGround();drawScene(dyn);drawGas(dyn);drawFx();drawWorldUI();drawHUD(dt);
  if(bigMap)drawBigMap();
 }
 let last=performance.now(),fpsT=0,fpsN=0,fps=60,pingT=0,slowSecs=0;
@@ -2012,5 +1980,6 @@ resize();refreshStatus();setInterval(()=>{if(!playing)refreshStatus();},8000);re
 // for automated tests
 window.__jm={SWINGS,HITS,get fps(){return fps;},VBYID,S,P,PX,PY,start,showMenu,keys,input,cam,get net(){return net;},get playing(){return playing;},toggleBigMap,get bigMap(){return bigMap;},get room(){return S.room;}};
 })();
+}
 
 

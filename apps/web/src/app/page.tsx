@@ -63,6 +63,15 @@ export default function Home() {
         <button className="mb" id="bAct">
           NAARA
         </button>
+        <button className="mb bGun" id="bGun">
+          🔫 RIFLE
+        </button>
+        <button className="mb bBomb" id="bBomb">
+          💣 BOMB
+        </button>
+        <button className="mb bReload" id="bReload">
+          🔄 RELOAD
+        </button>
         <button className="mb b3" id="bE">
           LIFT
         </button>
@@ -92,9 +101,9 @@ export default function Home() {
               <b>Andolankari</b>
               <p>Walk into people to grow your kafila. Reach Jantar Mantar.</p>
               <div className="keys">
-                🖱️ Point to walk · <kbd>Click</kbd> to act
+                🖱️ Point to walk · <kbd>Click</kbd> to act / shoot
                 <br />
-                Hold <kbd>Click</kbd> at a barricade to push
+                <kbd>1</kbd> Slogan · <kbd>2</kbd> Rifle · <kbd>3</kbd> Bomb · <kbd>R</kbd> Reload
               </div>
             </div>
             <div className="role" data-r="C">
@@ -102,11 +111,9 @@ export default function Home() {
               <b>Dilli Police</b>
               <p>Break kafilas with the lathi, lift leaders onto the bus. Watch out for big crowds!</p>
               <div className="keys">
-                🖱️ Point to walk · <kbd>Click</kbd> lathi
+                🖱️ Point to walk · <kbd>Click</kbd> lathi / shoot
                 <br />
-                <kbd>Right-click</kbd> tear gas
-                <br />
-                Your constables lift whoever your lathi exposes
+                <kbd>Right-click</kbd> or <kbd>G</kbd> throw bomb · <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> Weapons
               </div>
             </div>
           </div>
@@ -135,7 +142,7 @@ export default function Home() {
           </div>
           <div id="status">Checking server…</div>
           <div className="help">
-            <kbd>M</kbd> or <kbd>Tab</kbd> map · <kbd>U</kbd> mute · <kbd>Q</kbd> graphics · <kbd>T</kbd> switch team · <kbd>Esc</kbd> menu
+            <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> Weapons · <kbd>R</kbd> Reload · <kbd>G</kbd>/<kbd>B</kbd> Bomb · <kbd>M</kbd> Map · <kbd>U</kbd> Mute · <kbd>Q</kbd> Graphics · <kbd>Esc</kbd> Menu
           </div>
           <div className="disc">
             Satire. All characters, shops and brands are fictional. 🤖 = AI player.

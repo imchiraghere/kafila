@@ -227,7 +227,7 @@ function createSim(opts){
  // the crowd lifts a cop and throws him out ("utha ke fek diya")
  function throwCop(c,ox,oy,n){const a=Math.atan2(c.y-oy,c.x-ox)+rand(-.3,.3),T=.6,D=80+Math.min(14,n)*11;c.kbx=Math.cos(a)*D/T;c.kby=Math.sin(a)*D/T;c.kbT=T;c.flyT=T;c.stun=T+1.6;c.gheraoImm=9;if(c.role!=='holder'&&c.role!=='guard'){c.retreatT=6;c.retreatFrom={x:ox,y:oy};}if(c.carrying&&c.carrying.state==='carried')releaseCarried(c.carrying,c,'rescue');fx('gherao',c.x,c.y,c.id,Math.round(a*100));}
  function releaseCarried(p,c,why){p.state='active';p.carrier=null;p.ghost=3.5;p.boostT=Math.max(p.boostT,2);if(c){p.lastCarrier=c;p.lastCarrierT=S.tick+30*12;}p.stun=0;p.vx=p.vy=0;p.struggle=0;if(c){if(c.carrying===p)c.carrying=null;place(p,c.x+rand(-12,12),c.y+14);}fx('free',p.x,p.y,p.id);
-  if(p.ctl==='human')toast(p,why==='rescue'?'🙌 RESCUED by your people! Bhaago!':why==='wriggle'?'💥 Wriggled free! Bhaago!':'Chhoot gaye!','#a5d6a7',1);
+  if(p.ctl==='human')toast(p,why==='rescue'?'🙌 RESCUED by your people! Bhaago!':why==='wriggle'?'💥 Wriggled free! Bhaago!':why==='drop'?'Police dropped you! Bhaago!':'Chhoot gaye!','#a5d6a7',1);
   if(why&&isPlayerish(p))feed(why==='rescue'?`🙌 ${p.name} was rescued from the police!`:`💥 ${p.name} wriggled free!`,'#a5d6a7');}
  function helperFor(c,t){let h=null,bd=260*260;for(const o of S.ents){if(o.team!=='C'||o.ctl==='human'||o.state!=='active'||o.carrying||o.stun>0||o.role==='holder'||o.role==='guard')continue;const dd=d2(o.x,o.y,t.x,t.y)*(o.squadOf===c?.5:1);if(dd<bd){bd=dd;h=o;}}return h;}
  // the player's lathi exposes someone: a constable lifts them; the player keeps fighting
@@ -400,17 +400,43 @@ function createSim(opts){
    p.x=c.x;p.y=c.y+1;if((!c.carryBus||c.carryBus.state!=='load')&&(S.tick+p.id)%15===0)c.carryBus=nearestBusFor(c.x,c.y);
    let n=0,sx=0,sy=0,cn=0;const res=[];query(c.x,c.y,70,o=>{if(o.team==='C'&&o!==c&&o.state==='active'&&o.stun<=0)cn++;});query(c.x,c.y,50,o=>{if(o.team==='P'&&o!==p&&o.state==='active'&&o.mode!=='idle'&&o.mode!=='scared'&&o.dispT<=0){n++;sx+=o.x;sy+=o.y;if(isPlayerish(o))res.push(o);}});
    if(p.ctl==='bot'&&Math.random()<dt*2.2)p.struggle+=1;
-   p.resc=Math.max(0,(p.resc||0)+dt*(n>=3?(n-2-2*cn)/9:-.5));if(p.resc>=1||p.struggle>=Math.min(16,10+3*cn)){const why=p.resc>=1?'rescue':'wriggle';p.resc=0;releaseCarried(p,c,why);throwCop(c,n?sx/n:p.x+rand(-5,5),n?sy/n:p.y-8,Math.max(4,n));inc(p,'free');for(const r of res)if(r.ctl==='human'){inc(r,'free');addScore(r,40,'RESCUE!');addStreak(r,25);}continue;}
+   p.resc=Math.max(0,(p.resc||0)+dt*(n>=3?(n-2-2*cn)/9:-.5));if(p.resc>=1||p.struggle>=Math.min(14,8+2*cn)){const why=p.resc>=1?'rescue':'wriggle';p.resc=0;releaseCarried(p,c,why);throwCop(c,n?sx/n:p.x+rand(-5,5),n?sy/n:p.y-8,Math.max(4,n));inc(p,'free');for(const r of res)if(r.ctl==='human'){inc(r,'free');addScore(r,40,'RESCUE!');addStreak(r,25);}continue;}
    const b=c.carryBus;const bd=b?dist(c.x,c.y,b.x,b.y):1e9;if(p.bestBd===undefined||bd<p.bestBd-40){p.bestBd=bd;p.progT=p.carryT;}const stuck=p.carryT-p.progT>2.5;
-   if((b&&b.state==='load'&&bd<80)||stuck||p.carryT>(c.ctl==='human'?10:8)){p.bestBd=undefined;c.carrying=null;inc(c,'carry');sendToBus(p,c);}}
+   let targetBus=(b&&b.state==='load'&&bd<140)?b:null;
+   if(!targetBus){for(const bus of S.buses){if(bus.state==='load'&&dist(c.x,c.y,bus.x,bus.y)<140){targetBus=bus;break;}}}
+   if(targetBus||stuck||p.carryT>(c.ctl==='human'?12:8)){p.bestBd=undefined;c.carrying=null;if(targetBus)c.carryBus=targetBus;inc(c,'carry');sendToBus(p,c);}}
   for(let i=S.busRespawn.length-1;i>=0;i--)if(S.busRespawn[i].at<=S.tick){parkBus(S.busRespawn[i].st);S.busRespawn.splice(i,1);}
   for(const p of S.ents){if(p.state!=='escort')continue;const E=p.esc;E.t+=dt;const k=Math.min(1,E.t/.8),b=E.bus;p.x=E.x0+(b.x-E.x0)*k;p.y=E.y0+(b.y-E.y0)*k;
-   if(k>=1){if(!b.count)b.t=0;b.count++;if(isPlayerish(p)){p.state='bus';b.humans.push(p);}else p.state='gone';}}
-  for(let i=S.buses.length-1;i>=0;i--){const b=S.buses[i];b.t+=dt;
-   if(b.state==='load'){if(b.stop?((b.count>0&&b.t>7)||b.count>=10):(b.t>3.5||b.count>=14)){if(b.stop){S.busRespawn.push({st:b.stop,at:S.tick+30*10});b.stop=null;}b.state='drive';b.t=0;fx('horn',b.x,b.y);for(const h of b.humans)pfx(h,'busgo',b.dest.n);}continue;}
-   const dx=b.dest.x-b.x,dy=b.dest.y-b.y,d=Math.hypot(dx,dy);const fast=b.humans.some(h=>h.ctl==='human'&&h.ffwd)?3.2:1;const sp=Math.min(d,Math.min(1,b.t)*720*fast*dt);b.vx=dx/(d||1);b.vy=dy/(d||1);b.x+=b.vx*sp;b.y+=b.vy*sp;
+   if(k>=1){if(!b.count)b.t=0;b.count++;if(isPlayerish(p)){p.state='bus';p.struggle=0;b.humans.push(p);}else p.state='gone';}}
+  for(let i=S.buses.length-1;i>=0;i--){const b=S.buses[i];
+   const hasHuman=b.humans.some(h=>h.ctl==='human');
+   const fast=b.humans.some(h=>h.ctl==='human'&&h.ffwd)?3.2:1;
+   b.t+=dt*fast;
+   for(let j=b.humans.length-1;j>=0;j--){const h=b.humans[j];
+    if(h.struggle>=6){
+     h.state='active';h.struggle=0;b.humans.splice(j,1);b.count=Math.max(0,b.count-1);
+     place(h,b.x+rand(-35,35),b.y+35);h.ghost=4;h.boostT=3;h.vx=h.vy=0;h.trail=[];fx('free',h.x,h.y,h.id);
+     if(h.ctl==='human'){toast(h,'🏃 KHIDKI SE KOOD GAYE! Escaped from detention bus! Bhaago! 💨','#a5d6a7',1);addScore(h,35,'BUS ESCAPE!');}
+     feed(`🏃 ${h.name} jumped out of the detention bus and escaped!`,'#a5d6a7');
+    }
+   }
+   if(b.state==='load'){
+    const ready=b.stop?((b.count>0&&(b.t>7||(hasHuman&&b.t>2.5)))||b.count>=10):(b.t>3.5||b.count>=14);
+    if(ready){if(b.stop){S.busRespawn.push({st:b.stop,at:S.tick+30*10});b.stop=null;}b.state='drive';b.t=0;fx('horn',b.x,b.y);for(const h of b.humans)pfx(h,'busgo',b.dest.n);}
+    continue;
+   }
+   const dx=b.dest.x-b.x,dy=b.dest.y-b.y,d=Math.hypot(dx,dy);
+   const sp=Math.min(d,Math.min(1,b.t)*720*fast*dt);b.vx=dx/(d||1);b.vy=dy/(d||1);b.x+=b.vx*sp;b.y+=b.vy*sp;
    for(const h of b.humans){h.x=b.x;h.y=b.y;}
-   if(d<30){for(const h of b.humans){h.state='active';place(h,b.dest.x+rand(-40,40),b.dest.y+rand(-40,40));h.ghost=3;h.vx=h.vy=0;h.trail=[];h.best=1e9;toast(h,`Released from ${b.dest.n} after chai & paperwork. Grab a 🛵 or the 🚇 to get back!`,'#fff',1);}S.buses.splice(i,1);}}}
+   if(d<30){
+    for(const h of b.humans){
+     h.state='active';h.struggle=0;place(h,b.dest.x+rand(-40,40),b.dest.y+rand(-40,40));h.ghost=3.5;h.vx=h.vy=0;h.trail=[];h.best=1e9;
+     toast(h,`Released from ${b.dest.n} after chai & paperwork. Grab a 🛵 or the 🚇 to get back!`,'#fff',1);
+    }
+    b.humans=[];
+    S.buses.splice(i,1);
+   }
+  }}
  // ---------- events
  const EVDEF={
   internet:{dur:25},metro:{dur:35,start(){for(const n of MCLOSE)S.closed[n]=1;},end(){S.closed={};}},
@@ -433,12 +459,28 @@ function speedMult(e){let m=1;if(onWall(e))m*=.06;if(e.kafLag)m*=.72;if(e.carryi
   if(!inp){e.want={x:0,y:0};return;}
   const mx=clamp(+inp.x||0,-1,1),my=clamp(+inp.y||0,-1,1),m=Math.hypot(mx,my);e.want=m>1?{x:mx/m,y:my/m}:{x:mx,y:my};e.sprint=false;e.ffwd=!!inp.a||!!inp.ff;
   if(e.state==='hidden'){e.want={x:0,y:0};if(inp.a||inp.e)unhide(e);return;}
-  if(e.state==='carried'){if(inp.a||inp.e){e.struggle=(e.struggle||0)+1;pfx(e,'wriggle',Math.round(e.struggle));}return;}
+  if(e.state==='carried'){if(inp.a||inp.e){e.struggle=(e.struggle||0)+1.8;pfx(e,'wriggle',Math.round(e.struggle));}return;}
+  if(e.state==='bus'){if(inp.a||inp.e){e.struggle=(e.struggle||0)+1;pfx(e,'wriggle',Math.round(e.struggle));}return;}
   if(e.state!=='active'||S.round.over)return;
   if(e.fasting){e.want={x:0,y:0};if(inp.a||inp.e)endFast(e,'up');return;}
   if(e.team==='P'){if(inp.a||inp.e||inp.r)doCtx(e);else if(e.ffwd){const cx=ctxOf(e);if(cx.k===4)shove(e,cx.o,false);}
   }
   else{
+   if(e.carrying){
+    if(inp.a||inp.e){
+     let nearB=null;
+     for(const bus of S.buses){if(bus.state==='load'&&dist(e.x,e.y,bus.x,bus.y)<160){nearB=bus;break;}}
+     const p=e.carrying;
+     if(nearB){
+      e.carrying=null;e.carryBus=nearB;inc(e,'carry');sendToBus(p,e);
+      if(e.ctl==='human')toast(e,'🚌 Suspect loaded into detention bus!','#90caf9',1);
+     }else{
+      e.carrying=null;releaseCarried(p,e,'drop');
+      if(e.ctl==='human')toast(e,'Dropped suspect!','#ffcc80',1);
+     }
+     return;
+    }
+   }
    if(inp.g&&e.stun<=0&&e.gasCd<=0){throwGas(e,+inp.g[0]||e.x,+inp.g[1]||e.y);e.gasCd=e.pbT>0?2:4;}
    if(inp.a){if(Number.isFinite(+inp.aim))e.face=+inp.aim;swing(e,null);}
   }
@@ -609,7 +651,7 @@ function speedMult(e){let m=1;if(onWall(e))m*=.06;if(e.kafLag)m*=.72;if(e.carryi
    if(me.fasting)out.me.fast=+me.fastT.toFixed(1);
    if(me.state==='carried'){out.me.strg=Math.round(me.struggle||0);out.me.resc=+(me.resc||0).toFixed(2);}
    if(me.state==='hidden')out.me.hide=[Math.ceil(me.hideT),me.hideSpot?me.hideSpot.n:''];
-   if(me.state==='bus'){const b=S.buses.find(b=>b.humans.includes(me));if(b)out.me.bus=[b.dest.n,Math.round(b.dest.x),Math.round(b.dest.y)];}
+   if(me.state==='bus'){const b=S.buses.find(b=>b.humans.includes(me));if(b)out.me.bus=[b.dest.n,Math.round(b.dest.x),Math.round(b.dest.y)];out.me.strg=Math.round(me.struggle||0);}
    if(me.fxq&&me.fxq.length){out.pf=me.fxq;me.fxq=[];}}
   if(!cl||S.tick-(cl.mmT||0)>=6){out.mm=[];for(const e of S.ents)if(isPlayerish(e)&&(e.state==='active'||e.state==='riding'))out.mm.push([Math.round(e.x/4),Math.round(e.y/4),e.team==='P'?0:1,e.ctl==='human'?1:0,e.id===pid?1:0,wantedLvl(e)]);if(cl)cl.mmT=S.tick;}
   if(!cl||S.tick-(cl.lbT||0)>=30){out.lb=S.ents.filter(isPlayerish).sort((a,b)=>b.score-a.score).slice(0,12).map(e=>[e.id,e.name,Math.floor(e.score),e.team,e.ctl==='bot'?1:0,wantedLvl(e),e.mud,e.followers.length]);if(cl)cl.lbT=S.tick;}

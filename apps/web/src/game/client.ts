@@ -1,10 +1,12 @@
 import { createSim } from '@mantar-jantar/game-core';
-import { Team, ClientInput, DT, TICK_MS } from '@mantar-jantar/shared';
+import { Team, ClientInput, DT, TICK_MS, CameraPreset } from '@mantar-jantar/shared';
 import { SFX, initAudio } from './audio';
 import { GameRenderer, Particle, SpeechBubble, Camera } from './renderer';
+import { ThreeDRenderer } from './renderer3d';
 
 export interface GameClientOptions {
   canvas: HTMLCanvasElement;
+  canvas3D?: HTMLCanvasElement;
   name: string;
   team: Team;
   mudda: number;
@@ -17,7 +19,11 @@ export interface GameClientOptions {
 
 export class GameClient {
   private canvas: HTMLCanvasElement;
+  private canvas3D?: HTMLCanvasElement;
   private renderer: GameRenderer;
+  private renderer3D: ThreeDRenderer | null = null;
+  private viewMode: '2d' | '3d' = '2d';
+  private camPreset: CameraPreset = 'iso';
   private name: string;
   private team: Team;
   private mudda: number;
@@ -52,7 +58,15 @@ export class GameClient {
 
   constructor(opts: GameClientOptions) {
     this.canvas = opts.canvas;
+    this.canvas3D = opts.canvas3D;
     this.renderer = new GameRenderer(opts.canvas);
+    if (opts.canvas3D) {
+      try {
+        this.renderer3D = new ThreeDRenderer(opts.canvas3D, this.camPreset, 'hi');
+      } catch (e) {
+        console.warn('3D initialization failed, falling back to 2D:', e);
+      }
+    }
     this.name = opts.name;
     this.team = opts.team;
     this.mudda = opts.mudda;
@@ -64,6 +78,32 @@ export class GameClient {
     this.onScoreUpdate = opts.onScoreUpdate;
 
     this.bindEvents();
+  }
+
+  public setViewMode(mode: '2d' | '3d') {
+    if (mode === '3d' && !this.renderer3D && this.canvas3D) {
+      try {
+        this.renderer3D = new ThreeDRenderer(this.canvas3D, this.camPreset, 'hi');
+      } catch (e) {
+        console.warn('Failed to init 3D:', e);
+        mode = '2d';
+      }
+    }
+    this.viewMode = mode;
+    if (this.canvas3D) {
+      this.canvas3D.style.display = mode === '3d' ? 'block' : 'none';
+    }
+  }
+
+  public toggleViewMode() {
+    this.setViewMode(this.viewMode === '3d' ? '2d' : '3d');
+  }
+
+  public cycleCameraPreset() {
+    const presets: CameraPreset[] = ['iso', 'third', 'top'];
+    const nextIdx = (presets.indexOf(this.camPreset) + 1) % presets.length;
+    this.camPreset = presets[nextIdx];
+    if (this.renderer3D) this.renderer3D.setCameraPreset(this.camPreset);
   }
 
   private bindEvents() {
@@ -85,6 +125,7 @@ export class GameClient {
 
   private onResize = () => {
     this.renderer.resize(window.innerWidth, window.innerHeight);
+    if (this.renderer3D) this.renderer3D.resize(window.innerWidth, window.innerHeight);
   };
 
   private onMouseMove = (ev: MouseEvent) => {
@@ -96,6 +137,12 @@ export class GameClient {
     this.keys[ev.key.toLowerCase()] = true;
     if (ev.key.toLowerCase() === 't') {
       this.switchTeam();
+    }
+    if (ev.key.toLowerCase() === 'v') {
+      this.toggleViewMode();
+    }
+    if (ev.key.toLowerCase() === 'c') {
+      this.cycleCameraPreset();
     }
   };
 
@@ -143,6 +190,10 @@ export class GameClient {
     if (this.ws) {
       this.ws.onclose = null;
       this.ws.close();
+    }
+    if (this.renderer3D) {
+      this.renderer3D.dispose();
+      this.renderer3D = null;
     }
     this.unbindEvents();
   }
@@ -325,16 +376,26 @@ export class GameClient {
       if (p.life <= 0) this.particles.splice(i, 1);
     }
 
-    this.renderer.render(
-      this.cam,
-      this.entities,
-      this.bars,
-      this.gates,
-      this.particles,
-      this.bubbles,
-      this.myEntity,
-      this.rd
-    );
+    if (this.viewMode === '3d' && this.renderer3D) {
+      this.renderer3D.render({
+        me: this.myEntity,
+        entities: this.entities,
+        bars: this.bars,
+        gates: this.gates,
+        particles: this.particles
+      }, DT);
+    } else {
+      this.renderer.render(
+        this.cam,
+        this.entities,
+        this.bars,
+        this.gates,
+        this.particles,
+        this.bubbles,
+        this.myEntity,
+        this.rd
+      );
+    }
 
     this.animFrame = requestAnimationFrame(this.loop);
   };

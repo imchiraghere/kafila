@@ -161,3 +161,14 @@ export interface EntitySnapshot {
   name?: string;
   role?: string;
 }
+
+export type RendererMode = '2d' | '3d';
+export type CameraPreset = 'iso' | 'third' | 'top';
+export type GraphicsQuality = 'low' | 'med' | 'hi' | 'ultra';
+
+export interface GameRendererInterface {
+  resize(width: number, height: number): void;
+  render(...args: any[]): void;
+  dispose?(): void;
+}
+

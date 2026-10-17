@@ -47,8 +47,10 @@ export default function Home() {
           (window as any).__JM_SERVER_URL__ = httpUrl;
         }
         const v = Date.now();
+        await loadScript('/three.min.js?v=' + v);
         await loadScript('/shared/world.js?v=' + v);
         await loadScript('/shared/sim.js?v=' + v);
+        await loadScript('/renderer3d.js?v=' + v);
         await loadScript('/client.js?v=' + v);
       } catch (err) {
         console.error('Failed to load game scripts:', err);
@@ -58,7 +60,27 @@ export default function Home() {
 
   return (
     <>
-      <canvas id="c"></canvas>
+      <canvas id="c-3d" style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', display: 'none', zIndex: 1, pointerEvents: 'none' }}></canvas>
+      <canvas id="c" style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', display: 'block', zIndex: 2 }}></canvas>
+
+      {/* In-Game HUD 2D / 3D View Switcher & Settings */}
+      <div id="view-switcher" className="view-switcher" style={{ display: 'none' }}>
+        <div className="view-toggle-grp">
+          <button type="button" id="btn-view-2d" className="vbtn" title="2D Classic View (Key: V)">
+            2D VIEW
+          </button>
+          <button type="button" id="btn-view-3d" className="vbtn sel" title="3D Realistic View (Key: V)">
+            3D VIEW
+          </button>
+        </div>
+        <button type="button" id="btn-cam" className="vbtn cam-pill" title="Cycle 3D Camera: Isometric / Third-Person / Top-Down (Key: C)">
+          🎥 ISO
+        </button>
+        <button type="button" id="btn-gfx" className="vbtn gfx-pill" title="Graphics Quality (Key: Q)">
+          ⚙️ HIGH
+        </button>
+      </div>
+
       <div id="mob">
         <button className="mb" id="bAct">
           NAARA
@@ -83,6 +105,9 @@ export default function Home() {
         </button>
         <button className="mb b5" id="bMap">
           🗺️ MAP
+        </button>
+        <button className="mb bView" id="bView" title="Toggle 2D / 3D (V)">
+          3D 🔄
         </button>
       </div>
       <div id="menu">
@@ -142,7 +167,7 @@ export default function Home() {
           </div>
           <div id="status">Checking server…</div>
           <div className="help">
-            <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> Weapons · <kbd>R</kbd> Reload · <kbd>G</kbd>/<kbd>B</kbd> Bomb · <kbd>M</kbd> Map · <kbd>U</kbd> Mute · <kbd>Q</kbd> Graphics · <kbd>Esc</kbd> Menu
+            <kbd>V</kbd> 2D/3D View · <kbd>C</kbd> Camera · <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> Weapons · <kbd>R</kbd> Reload · <kbd>G</kbd>/<kbd>B</kbd> Bomb · <kbd>M</kbd> Map · <kbd>U</kbd> Mute · <kbd>Q</kbd> Graphics · <kbd>Esc</kbd> Menu
           </div>
           <div className="disc">
             Satire. All characters, shops and brands are fictional. 🤖 = AI player.

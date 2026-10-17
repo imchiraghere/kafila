@@ -1,6 +1,6 @@
 import {
   TAU, WORLD_SIZE, CP, JM, ZONE, ROADS, RINGS, PARKS, BUILD, TREES,
-  MUDDAS, GATE_DEFS, riverL
+  MUDDAS, GATE_DEFS, riverL, GameRendererInterface
 } from '@mantar-jantar/shared';
 
 export interface Camera {
@@ -33,7 +33,7 @@ export interface SpeechBubble {
   life: number;
 }
 
-export class GameRenderer {
+export class GameRenderer implements GameRendererInterface {
   private cv: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private width = 0;

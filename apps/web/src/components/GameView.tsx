@@ -21,12 +21,14 @@ export function GameView({
   onOpenMenu
 }: GameViewProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvas3DRef = useRef<HTMLCanvasElement | null>(null);
   const clientRef = useRef<GameClient | null>(null);
 
   const [status, setStatus] = useState('');
   const [score, setScore] = useState(0);
   const [kafila, setKafila] = useState(0);
   const [muted, setMutedState] = useState(false);
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
   const [gameOverMsg, setGameOverMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,6 +42,7 @@ export function GameView({
 
     const client = new GameClient({
       canvas: canvasRef.current,
+      canvas3D: canvas3DRef.current || undefined,
       name,
       team,
       mudda: muddaIndex,
@@ -63,6 +66,9 @@ export function GameView({
         setMuted(nextMute);
         setMutedState(nextMute);
       }
+      if (e.key.toLowerCase() === 'v') {
+        setViewMode((prev) => (prev === '3d' ? '2d' : '3d'));
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
 
@@ -79,11 +85,41 @@ export function GameView({
     setMutedState(nextMute);
   };
 
+  const toggleView = () => {
+    const next = viewMode === '3d' ? '2d' : '3d';
+    setViewMode(next);
+    clientRef.current?.setViewMode(next);
+  };
+
   const tickerText = NEWS.join('   ◆   ');
 
   return (
     <>
-      <canvas id="c" ref={canvasRef} />
+      <canvas
+        id="c-3d"
+        ref={canvas3DRef}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          display: viewMode === '3d' ? 'block' : 'none',
+          pointerEvents: 'none',
+          zIndex: 1
+        }}
+      />
+      <canvas
+        id="c"
+        ref={canvasRef}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          display: 'block',
+          zIndex: 2
+        }}
+      />
 
       {/* In-Game HUD */}
       <div className="hud">
@@ -98,6 +134,10 @@ export function GameView({
             </>
           )}
         </div>
+
+        <button type="button" className="hud-btn" onClick={toggleView}>
+          {viewMode === '3d' ? '🌐 3D View' : '🗺️ 2D View'} (V)
+        </button>
 
         <button type="button" className="hud-btn" onClick={toggleMute}>
           {muted ? '🔇 Unmute' : '🔊 Mute'}

@@ -11,11 +11,101 @@ if (typeof window !== 'undefined' && window.__jm_loaded) {
     const pick = a => a[(Math.random() * a.length) | 0];
     const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } } };
 
-    // =================================================================== canvas
+    // =================================================================== canvas & 2D/3D renderers
     const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+    const cv3d = document.getElementById('c-3d');
+    let renderer3D = null;
+    let viewMode = store.get('jm_view', '3d');
+    let camPreset = store.get('jm_cam_preset', 'iso');
+
+    function init3DEngine() {
+      if (renderer3D || !cv3d || !window.ThreeDRenderer) return;
+      try {
+        renderer3D = new window.ThreeDRenderer(cv3d, {
+          preset: camPreset,
+          quality: quality
+        });
+      } catch (err) {
+        console.warn('WebGL / 3D initialization failed, falling back to 2D:', err);
+        viewMode = '2d';
+        store.set('jm_view', '2d');
+      }
+    }
+
+    function updateViewSwitcherUI() {
+      const vs = document.getElementById('view-switcher');
+      if (vs) {
+        vs.style.display = playing ? 'flex' : 'none';
+        const b2d = document.getElementById('btn-view-2d');
+        const b3d = document.getElementById('btn-view-3d');
+        const bCam = document.getElementById('btn-cam');
+        const bGfx = document.getElementById('btn-gfx');
+        if (b2d && b3d) {
+          b2d.classList.toggle('sel', viewMode === '2d');
+          b3d.classList.toggle('sel', viewMode === '3d');
+        }
+        if (bCam) {
+          bCam.style.display = viewMode === '3d' ? '' : 'none';
+          bCam.textContent = camPreset === 'iso' ? '🎥 ISO' : camPreset === 'third' ? '🎥 3RD PERSON' : '🎥 TOP-DOWN';
+        }
+        if (bGfx) {
+          bGfx.textContent = quality === 'hi' ? '⚙️ HIGH' : quality === 'ultra' ? '⚙️ ULTRA' : '⚙️ FAST';
+        }
+      }
+    }
+
+    function setViewMode(mode) {
+      if (mode === '3d' && !renderer3D) {
+        init3DEngine();
+        if (!renderer3D) {
+          toast('⚠️ WebGL unavailable. Running 2D mode.');
+          mode = '2d';
+        }
+      }
+      viewMode = mode;
+      store.set('jm_view', mode);
+      if (cv3d) {
+        cv3d.style.display = viewMode === '3d' ? 'block' : 'none';
+      }
+      updateViewSwitcherUI();
+      toast(viewMode === '3d' ? '🌐 Switched to 3D Immersive View' : '🗺️ Switched to 2D Classic View', '#ffd54f');
+    }
+
+    function toggleViewMode() {
+      setViewMode(viewMode === '3d' ? '2d' : '3d');
+    }
+
+    function cycleCameraPreset() {
+      if (viewMode !== '3d') {
+        setViewMode('3d');
+        return;
+      }
+      const presets = ['iso', 'third', 'top'];
+      const nextIdx = (presets.indexOf(camPreset) + 1) % presets.length;
+      camPreset = presets[nextIdx];
+      store.set('jm_cam_preset', camPreset);
+      if (renderer3D) renderer3D.setCameraPreset(camPreset);
+      updateViewSwitcherUI();
+      const label = camPreset === 'iso' ? 'Isometric Tactical' : camPreset === 'third' ? 'Third-Person Street' : 'Top-Down Overview';
+      toast(`🎥 Camera: ${label}`, '#81d4fa');
+    }
+
     const vigCache = new Map(); let W = 0, H = 0, DPR = 1, quality = store.get('jm_q', 'hi'), miniDirty = true;
     const tiles = new Map();
-    function resize() { W = innerWidth; H = innerHeight; DPR = Math.min(window.devicePixelRatio || 1, quality === 'hi' ? 1.25 : 1); const maxPx = quality === 'hi' ? 2.6e6 : 1.5e6; if (W * H * DPR * DPR > maxPx) DPR = Math.max(.6, Math.sqrt(maxPx / (W * H))); vigCache.clear(); cv.width = Math.floor(W * DPR); cv.height = Math.floor(H * DPR); cv.style.width = W + 'px'; cv.style.height = H + 'px'; miniDirty = true; tiles.clear(); if (net) net.sendView(); }
+    function resize() {
+      W = innerWidth; H = innerHeight; DPR = Math.min(window.devicePixelRatio || 1, quality === 'hi' ? 1.25 : 1);
+      const maxPx = quality === 'hi' ? 2.6e6 : 1.5e6;
+      if (W * H * DPR * DPR > maxPx) DPR = Math.max(.6, Math.sqrt(maxPx / (W * H)));
+      vigCache.clear();
+      cv.width = Math.floor(W * DPR);
+      cv.height = Math.floor(H * DPR);
+      cv.style.width = W + 'px';
+      cv.style.height = H + 'px';
+      if (renderer3D) renderer3D.resize(W, H);
+      miniDirty = true;
+      tiles.clear();
+      if (net) net.sendView();
+    }
     addEventListener('resize', resize);
     function circle(x, y, r) { if (!(r > 0)) return; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
     function ellC(x, y, rx, ry) { ctx.beginPath(); ctx.ellipse(x, y, Math.max(0, rx), Math.max(0, ry), 0, 0, TAU); ctx.fill(); }
@@ -1359,6 +1449,7 @@ if (typeof window !== 'undefined' && window.__jm_loaded) {
       const bx = PX() + Math.cos(aim) * 36;
       const by = PY() - 30 + Math.sin(aim) * 36;
       bullets.push({ x: bx, y: by, vx: Math.cos(bulletAng) * 1550, vy: Math.sin(bulletAng) * 1550, ang: bulletAng, life: 0.85, max: 0.85, trail: [{ x: bx, y: by }], owner: S.myId });
+      if (renderer3D) renderer3D.spawnBulletTracer(bx, 14, by, bx + Math.cos(bulletAng) * 450, 6, by + Math.sin(bulletAng) * 450);
       const sideAng = aim + Math.PI / 2 + (Math.random() - 0.5) * 0.3;
       const csSpd = 90 + Math.random() * 80;
       shellCasings.push({ x: bx - Math.cos(aim) * 14, y: by - Math.sin(aim) * 14, vx: Math.cos(sideAng) * csSpd - Math.cos(aim) * 30, vy: Math.sin(sideAng) * csSpd - Math.sin(aim) * 30, h: 18, vh: 70 + Math.random() * 60, rot: Math.random() * TAU, vrot: (Math.random() - 0.5) * 25, life: 18, max: 18 });
@@ -1428,6 +1519,7 @@ if (typeof window !== 'undefined' && window.__jm_loaded) {
       try {
         if (!Number.isFinite(bx) || !Number.isFinite(by)) return;
         try { SFX.explosion(); } catch (e) { }
+        if (renderer3D) renderer3D.spawnExplosionFlash(bx, 0, by);
         camPunch = Math.max(camPunch, 0.08);
         shakeT = Math.max(shakeT, 0.22);
         craters.push({ x: bx, y: by, r: 32 + Math.random() * 8, life: 25, max: 25 });
@@ -1659,7 +1751,9 @@ if (typeof window !== 'undefined' && window.__jm_loaded) {
         e.preventDefault();
       }
       if (e.code.startsWith('Arrow')) e.preventDefault();
-      if (e.code === 'KeyQ') { quality = quality === 'hi' ? 'lo' : 'hi'; store.set('jm_q', quality); resize(); toast(`Graphics: ${quality === 'hi' ? 'HIGH' : 'FAST'}`); }
+      if (e.code === 'KeyV') { toggleViewMode(); }
+      if (e.code === 'KeyC') { cycleCameraPreset(); }
+      if (e.code === 'KeyQ') { quality = quality === 'hi' ? 'lo' : 'hi'; store.set('jm_q', quality); resize(); updateViewSwitcherUI(); toast(`Graphics: ${quality === 'hi' ? 'HIGH' : 'FAST'}`); }
       if (e.code === 'KeyT' && playing && net) { net.send({ t: 'team', team: P.team === 'P' ? 'C' : 'P', mud: mudda }); toast('Switching team…'); }
       if (e.code === 'Escape') { if (bigMap) { bigMap = false; } else if (playing) showMenu(); }
     });
@@ -1678,6 +1772,22 @@ if (typeof window !== 'undefined' && window.__jm_loaded) {
     const bBomb = btn('bBomb', () => { activeWeapon = 3; const px = PX(), py = PY() - 28; throwBomb(px + Math.cos(P.face) * 240, py + Math.sin(P.face) * 240); });
     const bReload = btn('bReload', () => { startReload(); });
     const bMap = btn('bMap', () => { toggleBigMap(); });
+    const bViewMob = btn('bView', () => { toggleViewMode(); });
+
+    const btnV2D = document.getElementById('btn-view-2d');
+    if (btnV2D) btnV2D.addEventListener('click', () => setViewMode('2d'));
+    const btnV3D = document.getElementById('btn-view-3d');
+    if (btnV3D) btnV3D.addEventListener('click', () => setViewMode('3d'));
+    const btnCam = document.getElementById('btn-cam');
+    if (btnCam) btnCam.addEventListener('click', () => cycleCameraPreset());
+    const btnGfx = document.getElementById('btn-gfx');
+    if (btnGfx) btnGfx.addEventListener('click', () => {
+      quality = quality === 'hi' ? 'lo' : 'hi';
+      store.set('jm_q', quality);
+      resize();
+      updateViewSwitcherUI();
+      toast(`Graphics: ${quality === 'hi' ? 'HIGH' : 'FAST'}`);
+    });
     let inAcc = 0;
     function sampleInput() {
       if (bigMap) return;
@@ -2762,10 +2872,42 @@ if (typeof window !== 'undefined' && window.__jm_loaded) {
 
     function render(dt) {
       const dyn = interp(); updateAmbient(dt); updateCam(dt); updateWeapons(dt);
+
+      if (viewMode === '3d') {
+        if (!renderer3D) init3DEngine();
+        if (renderer3D) {
+          if (cv3d && cv3d.style.display !== 'block') cv3d.style.display = 'block';
+          renderer3D.render({
+            me: S.me,
+            entities: dyn.ents,
+            riders: dyn.riders,
+            buses: dyn.buses,
+            bars: S.bars,
+            gates: S.gates,
+            bombs: bombs,
+            gas: S.gas,
+            particles: particles
+          }, dt);
+
+          // Clear 2D canvas to render crisp HUD & UI overlay
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.clearRect(0, 0, cv.width, cv.height);
+          ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+          drawHUD(dt);
+          if (bigMap) drawBigMap();
+          return;
+        }
+      }
+
+      // 2D Classic Mode
+      if (cv3d && cv3d.style.display !== 'none') cv3d.style.display = 'none';
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.fillStyle = '#8fae63'; ctx.fillRect(0, 0, W, H);
-      const z = cam.z, sx = shakeT > 0 ? rand(-5, 5) : 0, sy = shakeT > 0 ? rand(-5, 5) : 0; V = { x0: cam.x - W / 2 / z, y0: cam.y - H / 2 / z, x1: cam.x + W / 2 / z, y1: cam.y + H / 2 / z + 120 };
+      const z = cam.z, sx = shakeT > 0 ? rand(-5, 5) : 0, sy = shakeT > 0 ? rand(-5, 5) : 0;
+      V = { x0: cam.x - W / 2 / z, y0: cam.y - H / 2 / z, x1: cam.x + W / 2 / z, y1: cam.y + H / 2 / z + 120 };
       ctx.setTransform(DPR * z, 0, 0, DPR * z, DPR * (W / 2 - cam.x * z + sx), DPR * (H / 2 - cam.y * z + sy));
-      const i0 = Math.floor(V.x0 / TS), i1 = Math.floor(V.x1 / TS), j0 = Math.floor(V.y0 / TS), j1 = Math.floor((V.y1 - 120) / TS); {
+      const i0 = Math.floor(V.x0 / TS), i1 = Math.floor(V.x1 / TS), j0 = Math.floor(V.y0 / TS), j1 = Math.floor((V.y1 - 120) / TS);
+      {
         let tb = 2; for (let i = i0; i <= i1; i++)for (let j = j0; j <= j1; j++) { const key = i * 1000 + j; let t = tiles.get(key); if (t) { tiles.delete(key); tiles.set(key, t); } else if (tb > 0) { tb--; t = getTile(i, j); } if (t) ctx.drawImage(t, i * TS, j * TS, TS + .6, TS + .6); else { ctx.fillStyle = '#d6c79f'; ctx.fillRect(i * TS, j * TS, TS + .6, TS + .6); } }
         if (tb > 0) ring: for (let i = i0 - 1; i <= i1 + 1; i++)for (let j = j0 - 1; j <= j1 + 1; j++) { if (!tiles.has(i * 1000 + j)) { getTile(i, j); if (--tb <= 0) break ring; } }
       }
@@ -2838,13 +2980,28 @@ if (typeof window !== 'undefined' && window.__jm_loaded) {
       S.snaps = []; S.me = null; S.lb = []; S.mm = []; S.names.clear(); pending = []; P.team = role; particles.length = 0; confetti.length = 0; bubbles.length = 0; toasts.length = 0; feed.length = 0; banner = null; celebrate = null; S.detained = null;
       net = mode === 'online' ? new Online(name, role, selectedRoom) : new Local(name, role);
       bAct.textContent = role === 'P' ? 'NAARA' : 'LATHI'; bGas.style.display = role === 'C' ? '' : 'none';
+      if (viewMode === '3d') init3DEngine();
+      updateViewSwitcherUI();
     }
-    function showMenu(msg) { playing = false; if (net) { net.close(); net = null; } S.me = null; menu.classList.remove('hide'); document.getElementById('mob').classList.remove('on'); if (msg) statusEl.innerHTML = msg; else refreshStatus(); }
+    function showMenu(msg) {
+      playing = false; if (net) { net.close(); net = null; } S.me = null;
+      menu.classList.remove('hide');
+      document.getElementById('mob').classList.remove('on');
+      updateViewSwitcherUI();
+      if (msg) statusEl.innerHTML = msg; else refreshStatus();
+    }
     playBtn.addEventListener('click', () => { if (!ONLINE_DOWN) start('online'); }); pracBtn.addEventListener('click', () => start('offline'));
     nameIn.addEventListener('keydown', e => { if (e.key === 'Enter') (playBtn.disabled ? pracBtn : playBtn).click(); });
     resize(); refreshStatus(); setInterval(() => { if (!playing) refreshStatus(); }, 8000); requestAnimationFrame(frame);
-    // for automated tests
-    window.__jm = { SWINGS, HITS, get fps() { return fps; }, VBYID, S, P, PX, PY, start, showMenu, keys, input, cam, get net() { return net; }, get playing() { return playing; }, toggleBigMap, get bigMap() { return bigMap; }, get room() { return S.room; } };
+    // for automated tests and developer console
+    window.__jm = {
+      SWINGS, HITS, get fps() { return fps; }, VBYID, S, P, PX, PY,
+      start, showMenu, keys, input, cam,
+      get net() { return net; }, get playing() { return playing; },
+      toggleBigMap, get bigMap() { return bigMap; }, get room() { return S.room; },
+      get viewMode() { return viewMode; }, setViewMode, toggleViewMode, cycleCameraPreset,
+      get renderer3D() { return renderer3D; }
+    };
   })();
 }
 
